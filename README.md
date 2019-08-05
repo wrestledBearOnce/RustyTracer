@@ -1,4 +1,4 @@
-# Raytracer in Rust (rraytracer)
+# RustyTracer (Raytracer in Rust)
 
 ## About
 
