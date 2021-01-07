@@ -1,33 +1,38 @@
+extern crate nalgebra as na;
+use na::Vector3;
+use std::fmt;
 
-use crate::Vec3;
-
-#[derive(Debug, PartialEq)]
-pub struct Ray
-{
-    pub A:Vec3,
-    pub B:Vec3
+pub struct Ray {
+    pub origin: Vector3<f32>,
+    pub direction: Vector3<f32>,
 }
 
 impl Ray {
-    pub fn new() -> Self {
-        Ray { A : Vec3::new(), B : Vec3::new() }
+    // constructs a new Ray
+    pub fn new(origin: Vector3<f32>, direction: Vector3<f32>) -> Ray {
+        return Ray {
+            origin: origin,
+            direction: direction,
+        };
     }
 
-    pub fn ctor(a:Vec3, b:Vec3) -> Self {
-        Ray {A : a, B : b}     
+    // returns ray at a given position t determined by a linear interpolation
+    pub fn at(&self, t: f32) -> Vector3<f32> {
+        return self.origin + (self.direction * t);
     }
 
-    pub fn origin(&self) -> &Vec3 {
-        &self.A
+    // returns interpolated color (for the background)
+    pub fn color(&self) -> Vector3<f32> {
+        let unit_direction = self.direction.normalize();
+        let t = 0.5 * (unit_direction[1] + 1.0);
+        // linear color interpolation
+        return (1.0 - t) * Vector3::new(1.0, 1.0, 1.0) + t * Vector3::new(0.5, 0.7, 1.0);
     }
+}
 
-    pub fn direction(&self) -> &Vec3 {
-        &self.B
-    }
-
-    pub fn point_at_parameter(&self, t:f32) -> Vec3 {          
-        let return_var = self.A.copy() + self.B.mul(t);
-        return_var
-        
+// ray to_string() impl
+impl std::fmt::Display for Ray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Position: {} Target: {}", self.origin, self.direction)
     }
 }

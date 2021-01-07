@@ -1,115 +1,69 @@
+extern crate nalgebra as na;
 
-mod vec3;
+mod image;
+mod mesh;
 mod ray;
+mod sphere;
 
-
-use std::fs::File;
-use std::io::Write;
-
-
-use vec3::Vec3;
-use ray::Ray;
-
+use crate::image::Image;
+use crate::mesh::Mesh;
+use crate::ray::Ray;
+use crate::sphere::Sphere;
+use na::Vector3;
+use std::io::{stdout, Write};
 
 fn main() {
-  
-    chapter_1_output_an_image();
-    chapter_2_create_image_with_vec3();
-    chapter_3_ray();
-}
+    let s = Sphere {
+        center: Vector3::new(0.0, 0.0, -1.0),
+        radius: 0.5,
+    };
 
-fn chapter_1_output_an_image()
-{
-    let mut file = File::create("myFirstImage.ppm").expect("Unable to create file");
+    // image related stuff
+    let aspect_ratio = 16.0 / 9.0;
+    let img_width = 1080;
+    let img_height = (img_width as f32 / aspect_ratio) as usize;
+    let mut img = Image::new(img_width, img_height);
 
-    let nx = 200;
-    let ny = 100;
-    let first_line = format!("P3\n{} {}\n255\n", nx, ny);
-    file.write_all(first_line.as_bytes()).expect("Unable to read file");
+    // viewport related stuff
+    let viewport_height = 2.0;
+    let viewport_width = aspect_ratio * viewport_height;
+    let focal_length = 1.0;
 
-    for j in num_iter::range_step(ny-1, 0, -1)
-    {
-        for i in 0..nx
-        {    
-            let r = (i as f32) / (nx as f32);
-            let g = (j as f32) / (ny as f32);
-            let b = 0.2;
-            let ir = 255.99 * r;
-            let ig = 255.99 * g;
-            let ib = 255.99 * b;
+    let origin = Vector3::new(0.0, 0.0, 0.0);
+    let horizontal = Vector3::new(viewport_width, 0.0, 0.0);
+    let vertical = Vector3::new(0.0, viewport_height, 0.0);
+    let lower_left_corner =
+        origin - horizontal / 2.0 - vertical / 2.0 - Vector3::new(0.0, 0.0, focal_length);
 
-            let current_color_line = format!("{} {} {}\n", (ir as i32), (ig as i32), (ib as i32));
-            file.write_all(current_color_line.as_bytes()).expect("Unable to read file");
+    let mut stdout = stdout();
+
+    for y in (0..img_height).rev() {
+        print!("\rScanlines remaining: {}", y);
+        stdout.flush().unwrap();
+
+        for x in 0..img_width {
+            let u = x as f32 / (img_width as f32 - 1.0);
+            let v = y as f32 / (img_height as f32 - 1.0);
+
+            let ray = Ray::new(
+                origin,
+                lower_left_corner + u * horizontal + v * vertical - origin,
+            );
+
+            let mut pixel_color = ray.color();
+            let intersection_pt = s.intersects(&ray);
+            if  intersection_pt > 0.0 {
+                // surface normal
+                let normal = (ray.at(intersection_pt) - Vector3::new(0.0,0.0,-1.0)).normalize_mut();
+                pixel_color = normal * Vector3::new(0.25, 0.75, 0.5);
+            }
+
+            img.data.push(pixel_color);
         }
     }
 
-    println!("Output ready!");
-    
+    // one empty line due to stdout.flush() '\r' overwrite
+    println!("");
+
+    img.save("test.ppm");
 }
-
-fn chapter_2_create_image_with_vec3()
-{
-    let mut file = File::create("mySecondImage.ppm").expect("Unable to create file");
-
-    let nx = 200;
-    let ny = 100;
-    let first_line = format!("P3\n{} {}\n255\n", nx, ny);
-    file.write_all(first_line.as_bytes()).expect("Unable to read file");
-
-    for j in num_iter::range_step(ny-1, 0, -1)
-    {
-        for i in 0..nx
-        {    
-            let col = Vec3::ctor((i as f32) / (nx as f32), (j as f32) / (ny as f32), 0.2);
-            
-            let ir = 255.99 * col.x();
-            let ig = 255.99 * col.y();
-            let ib = 255.99 * col.z();
-
-            let current_color_line = format!("{} {} {}\n", (ir as i32), (ig as i32), (ib as i32));
-            file.write_all(current_color_line.as_bytes()).expect("Unable to read file");
-        }
-    }
-}
-
-fn color(ray:&Ray) -> Vec3
-{
-    let unit_dir_y = ray.direction().make_unit_vector().y();
-    let t =  0.5 * (unit_dir_y + 1.0);
-    Vec3::ctor(1f32, 1f32, 1f32).mul(1.0 - t) + Vec3::ctor(0.5, 0.7, 1.0).mul(t)
-}
-
-fn chapter_3_ray()
-{
-     let mut file = File::create("myThirdImage.ppm").expect("Unable to create file");
-
-    let nx = 200;
-    let ny = 100;
-    let first_line = format!("P3\n{} {}\n255\n", nx, ny);
-    file.write_all(first_line.as_bytes()).expect("Unable to read file");
-
-    let lower_left_corner = Vec3::ctor(-2.0, -1.0, -1.0);
-    let horizontal = Vec3::ctor(4f32, 0f32, 0f32);
-    let vertical = Vec3::ctor(0f32, 2f32, 0f32);
-    let origin = Vec3::ctor(0f32, 0f32, 0f32);
-
-    for j in num_iter::range_step(ny-1, 0, -1)
-    {
-        for i in 0..nx
-        {    
-            let u = (i as f32) / (nx as f32);
-            let v = (j as f32) / (ny as f32);
-
-            let ray = Ray::ctor(origin.copy(), lower_left_corner.copy() + horizontal.mul(u) + vertical.mul(v)); // TODO: try to avoid copy traits
-            let col = color(&ray);
-            
-            let ir = 255.99 * col.x();
-            let ig = 255.99 * col.y();
-            let ib = 255.99 * col.z();
-
-            let current_color_line = format!("{} {} {}\n", (ir as i32), (ig as i32), (ib as i32));
-            file.write_all(current_color_line.as_bytes()).expect("Unable to read file");
-        }
-    }
-}
-
