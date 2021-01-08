@@ -1,7 +1,7 @@
 extern crate nalgebra as na;
 use crate::mesh::Mesh;
 use crate::Ray;
-use na::{Matrix3, Vector3};
+use na::Vector3;
 
 pub struct Sphere {
     pub center: Vector3<f32>,
