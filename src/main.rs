@@ -54,8 +54,9 @@ fn main() {
             let intersection_pt = s.intersects(&ray);
             if  intersection_pt > 0.0 {
                 // surface normal
-                let normal = (ray.at(intersection_pt) - Vector3::new(0.0,0.0,-1.0)).normalize_mut();
-                pixel_color = normal * Vector3::new(0.25, 0.75, 0.5);
+                let normal = (ray.at(intersection_pt) - Vector3::new(0.0,0.0,-1.0)).normalize();
+                let n_dot_l = normal.dot(&Vector3::new(0.0, 0.0, 1.0));
+                pixel_color = n_dot_l * Vector3::new(0.25, 0.75, 0.5);
             }
 
             img.data.push(pixel_color);
